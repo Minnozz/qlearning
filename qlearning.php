@@ -3,13 +3,9 @@
 		private $states = array();
 		private $initialState;
 		private $currentState;
-		private $learningRate;
-		private $discountFactor;
-
-		public function __construct($learningRate = 1, $discountFactor = 1) {
-			$this->setLearningRate($learningRate);
-			$this->setDiscountFactor($discountFactor);
-		}
+		private $learningRate = 1;
+		private $discountFactor = 1;
+		private $explorationFunction = NULL;
 
 		public function addState(State $state) {
 			if(isset($this->states[$state->getLabel()])) {
@@ -45,6 +41,10 @@
 			return $this->discountFactor;
 		}
 
+		public function setExplorationFunction(Closure $explorationFunction = NULL) {
+			$this->explorationFunction = $explorationFunction;
+		}
+
 		public function iterate() {
 			// Start in initial state
 			$currentState = $this->initialState;
@@ -54,7 +54,7 @@
 				// Determine which action to perform
 				if($nextAction === NULL) {
 					// First action only
-					$action = $currentState->determineBestAction();
+					$action = $currentState->determineNextAction($this->explorationFunction);
 				} else {
 					// Action already determined in previous step
 					$action = $nextAction;
@@ -63,20 +63,21 @@
 
 				// Perform action
 				$nextState = $action->determineOutcome();
+				$action->addVisit();
 
 				// Determine next action (necessary for updating Q value)
-				$nextAction = $nextState->determineBestAction();
+				$nextAction = $nextState->determineNextAction($this->explorationFunction);
 
 				// Calculate new Q value for executed action
-				$qValue = $currentState->getQValueForAction($action);
-				$nextActionQValue = $nextState->getQValueForAction($nextAction);
+				$qValue = $action->getQValue();
+				$nextActionQValue = $nextAction->getQValue();
 				$this->debug('Next action will be '. $nextAction->getLabel() .' in state '. $nextState->getLabel() .' with Q value '. $nextActionQValue);
 				$newQValue = $qValue + $this->learningRate * ($currentState->getReward() + $this->discountFactor * $nextActionQValue - $qValue);
 
-				$this->debug('Updating Q value for aaction '. $action->getLabel() .' in state '. $currentState->getLabel() .' from '. $qValue .' to '. $newQValue);
+				$this->debug('Updating Q value for action '. $action->getLabel() .' in state '. $currentState->getLabel() .' from '. $qValue .' to '. $newQValue);
 
 				// Update Q value for the executed action
-				$currentState->setQValueForAction($action, $newQValue);
+				$action->setQValue($newQValue);
 
 				// Update current state
 				$currentState = $nextState;
@@ -84,7 +85,7 @@
 		}
 
 		private function debug($message) {
-			print($message ."\n");
+			#print($message ."\n");
 		}
 	}
 

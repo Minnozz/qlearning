@@ -3,13 +3,32 @@
 		private $label;
 		private $outcomes = array();
 		private $outcomeWeights = array();
+		private $qValue;
+		private $visits = 0;
 
-		function __construct($label) {
+		function __construct($label, $qValue = 0) {
 			$this->label = $label;
+			$this->qValue = $qValue;
 		}
 
 		public function getLabel() {
 			return $this->label;
+		}
+
+		public function setQValue($qValue) {
+			$this->qValue = $qValue;
+		}
+
+		public function getQValue() {
+			return $this->qValue;
+		}
+
+		public function addVisit() {
+			$this->visits++;
+		}
+
+		public function getVisits() {
+			return $this->visits;
 		}
 
 		public function addOutcome(State $state, $weight = 1) {

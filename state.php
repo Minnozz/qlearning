@@ -4,7 +4,6 @@
 		private $absorbing = false;
 		private $reward;
 		private $actions = array();
-		private $qValues = array();
 
 		function __construct($label, $reward = 0) {
 			$this->label = $label;
@@ -31,12 +30,11 @@
 			return $this->reward;
 		}
 
-		public function addAction(Action $action, $initialQValue = 0) {
+		public function addAction(Action $action) {
 			if(isset($this->actions[$action->getLabel()])) {
 				throw new QLearningException('Action with label '. $action->getLabel() .' already exists for state '. $this->getLabel());
 			}
 			$this->actions[$action->getLabel()] = $action;
-			$this->setQValueForAction($action, $initialQValue);
 		}
 
 		public function getAction($label) {
@@ -46,29 +44,30 @@
 			return $this->actions[$label];
 		}
 
-		public function setQValueForAction(Action $action, $qValue) {
-			// TODO: Store Q values in Action objects
-			$this->qValues[$action->getLabel()] = $qValue;
-		}
-
-		public function getQValueForAction(Action $action) {
-			// TODO: Store Q values in Action objects
-			return $this->qValues[$action->getLabel()];
-		}
-
-		public function determineBestAction() {
-			// TODO: Exploration (don't always choose the highest Q value)
-
-			$highestQValue = max($this->qValues);
-			$bestActions = array_keys($this->qValues, $highestQValue);
-
-			if(count($bestActions) > 0) {
-				$bestAction = $bestActions[array_rand($bestActions)];
-			} else {
-				$bestAction = $bestActions[0];
+		public function determineNextAction(Closure $explorationFunction = NULL) {
+			$highestQValue = NULL;
+			$bestActions = array();
+			foreach($this->actions as $action) {
+				if($explorationFunction === NULL) {
+					$effectiveQValue = $action->getQValue();
+				} else {
+					$effectiveQValue = $explorationFunction($action);
+				}
+				if($highestQValue === NULL || $effectiveQValue >= $highestQValue) {
+					if($effectiveQValue == $highestQValue) {
+						$bestActions[] = $action;
+					} else {
+						$highestQValue = $effectiveQValue;
+						$bestActions = array($action);
+					}
+				}
 			}
 
-			return $this->actions[$bestAction];
+			if(count($bestActions) > 0) {
+				return $bestActions[array_rand($bestActions)];
+			} else {
+				return $bestActions[0];
+			}
 		}
 	}
 ?>

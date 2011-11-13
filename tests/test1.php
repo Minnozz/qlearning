@@ -8,7 +8,12 @@
 		label(2, 2)
 	);
 
-	$q = new QLearning(0.5, 0.9);
+	$q = new QLearning();
+	$q->setLearningRate(0.2);
+	$q->setDiscountFactor(0.9);
+	$q->setExplorationFunction(function(Action $action) {
+		return $action->getQValue() + max(0, 50 - $action->getVisits());
+	});
 
 	// Create states
 	for($y = 1; $y <= HEIGHT; $y++) {
@@ -25,10 +30,10 @@
 	$q->setInitialState($q->getState(label(1, 3)));
 
 	$q->getState(label(4, 1))->setAbsorbing(true);
-	$q->getState(label(4, 1))->setReward(100);
+	$q->getState(label(4, 1))->setReward(99);
 
 	$q->getState(label(4, 2))->setAbsorbing(true);
-	$q->getState(label(4, 2))->setReward(-100);
+	$q->getState(label(4, 2))->setReward(-99);
 
 	// Set possible actions for all states
 	for($y = 1; $y <= HEIGHT; $y++) {
@@ -40,9 +45,9 @@
 			$state = $q->getState($label);
 
 			if($state->isAbsorbing()) {
-				$action = new Action('Finish');
+				$action = new Action('Finish', $state->getReward());
 				$action->addOutcome($state);
-				$state->addAction($action, $state->getReward());
+				$state->addAction($action);
 			} else {
 				$north = label($x, ($y > 1) ? $y - 1 : $y);
 				$north = in_array($north, $obstacles) ? $state : $q->getState($north);
@@ -107,14 +112,14 @@
 					if($state->isAbsorbing()) {
 						$lines[0][] = sprintf('+-----------+');
 						$lines[1][] = sprintf('|           |');
-						$lines[2][] = sprintf('|    % 3d    |', $state->getQValueForAction($state->getAction('Finish')));
+						$lines[2][] = sprintf('|    % 3d    |', $state->getAction('Finish')->getQValue());
 						$lines[3][] = sprintf('|           |');
 						$lines[4][] = sprintf('+-----------+');
 					} else {
 						$lines[0][] = sprintf('+-----------+');
-						$lines[1][] = sprintf('|    % 3d    |', $state->getQValueForAction($state->getAction('N')));
-						$lines[2][] = sprintf('| % 3d   % 3d |', $state->getQValueForAction($state->getAction('W')), $state->getQValueForAction($state->getAction('E')));
-						$lines[3][] = sprintf('|    % 3d    |', $state->getQValueForAction($state->getAction('S')));
+						$lines[1][] = sprintf('|    % 3d    |', $state->getAction('N')->getQValue());
+						$lines[2][] = sprintf('| % 3d   % 3d |', $state->getAction('W')->getQValue(), $state->getAction('E')->getQValue());
+						$lines[3][] = sprintf('|    % 3d    |', $state->getAction('S')->getQValue());
 						$lines[4][] = sprintf('+-----------+');
 					}
 				}
@@ -125,6 +130,7 @@
 			}
 			print("\n");
 		}
+		print("\n");
 
 		usleep(100000);
 	}
