@@ -1,16 +1,19 @@
 <?php
 	require_once('../includes.php');
 
-	define('WIDTH', 4);
-	define('HEIGHT', 3);
+	define('WIDTH', 7);
+	define('HEIGHT', 4);
+	define('ITERATIONS', 1000);
 
 	$obstacles = array(
-		label(2, 2)
+		label(2, 2),
+		label(4, 1),
+		label(3, 3),
 	);
 
 	$q = new QLearning();
-	$q->setLearningRate(0.2);
-	$q->setDiscountFactor(0.9);
+	$q->setLearningRate(0.3);
+	$q->setDiscountFactor(0.95);
 	$q->setExplorationFunction(function(Action $action) {
 		return $action->getQValue() + max(0, 50 - $action->getVisits());
 	});
@@ -29,11 +32,11 @@
 
 	$q->setInitialState($q->getState(label(1, 3)));
 
-	$q->getState(label(4, 1))->setAbsorbing(true);
-	$q->getState(label(4, 1))->setReward(99);
+	$q->getState(label(6, 1))->setAbsorbing(true);
+	$q->getState(label(6, 1))->setReward(99);
 
-	$q->getState(label(4, 2))->setAbsorbing(true);
-	$q->getState(label(4, 2))->setReward(-99);
+	$q->getState(label(6, 3))->setAbsorbing(true);
+	$q->getState(label(6, 3))->setReward(-99);
 
 	// Set possible actions for all states
 	for($y = 1; $y <= HEIGHT; $y++) {
@@ -89,8 +92,10 @@
 	}
 
 	// Main loop
-	while(true) {
+	$i = 0;
+	while($i++ < 1000) {
 		// Iterate the learning algorithm
+		print("Iteration ". $i ."\n");
 		$q->iterate();
 
 		// Draw the state space with Q values
@@ -132,7 +137,45 @@
 		}
 		print("\n");
 
-		usleep(100000);
+		usleep(10000);
+	}
+
+	// Draw the policy
+	print("Policy:\n");
+	for($y = 1; $y <= HEIGHT; $y++) {
+		$lines = array();
+
+		for($x = 1; $x <= WIDTH; $x++) {
+			$label = label($x, $y);
+
+			if(in_array($label, $obstacles)) {
+				$lines[0][] = sprintf('+-----------+');
+				$lines[1][] = sprintf('| xxxxxxxxx |');
+				$lines[2][] = sprintf('| xxxxxxxxx |');
+				$lines[3][] = sprintf('| xxxxxxxxx |');
+				$lines[4][] = sprintf('+-----------+');
+			} else {
+				$state = $q->getState($label);
+
+				if($state->isAbsorbing()) {
+					$lines[0][] = sprintf('+-----------+');
+					$lines[1][] = sprintf('|           |');
+					$lines[2][] = sprintf('|   Finish  |');
+					$lines[3][] = sprintf('|           |');
+					$lines[4][] = sprintf('+-----------+');
+				} else {
+					$lines[0][] = sprintf('+-----------+');
+					$lines[1][] = sprintf('|           |');
+					$lines[2][] = sprintf('|     %s     |', $state->determineNextAction()->getLabel());
+					$lines[3][] = sprintf('|           |');
+					$lines[4][] = sprintf('+-----------+');
+				}
+			}
+		}
+
+		foreach($lines as $parts) {
+			print(implode(' ', $parts) ."\n");
+		}
 	}
 
 	function label($x, $y) {
