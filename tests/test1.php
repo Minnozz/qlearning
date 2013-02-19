@@ -1,5 +1,5 @@
 <?php
-	require_once('../includes.php');
+	require_once(__DIR__ .'/../includes.php');
 
 	define('WIDTH', 7);
 	define('HEIGHT', 4);
